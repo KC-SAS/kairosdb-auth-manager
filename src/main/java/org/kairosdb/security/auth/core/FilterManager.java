@@ -34,7 +34,7 @@ public class FilterManager
 
     List<String> pathSplitter(String path)
     {
-        final List<String> paths = new ArrayList<>();
+        final Set<String> paths = new HashSet<>();
         final String[] parts = path.split("/");
         final StringBuilder formattedPath = new StringBuilder("/");
 
@@ -45,18 +45,17 @@ public class FilterManager
         for (int i = 1; i < parts.length; i++)
         {
             formattedPath.append(parts[i]);
-            if (i >= parts.length - 1)
+            if (i >= parts.length - 1 && !path.endsWith("/"))
             {
                 paths.add(formattedPath.toString());
-                if (!path.endsWith("/"))
-                    continue;
+                continue;
             }
 
             formattedPath.append("/");
             paths.add(formattedPath.toString() + "*");
         }
 
-        return paths;
+        return new ArrayList<>(paths);
     }
 
 

@@ -29,6 +29,8 @@ public class AuthenticationManagerFilterTest
         Assert.assertFalse(authenticationModuleTest.isConfigured);
         authenticationManagerFilter.init(null);
         Assert.assertTrue(authenticationModuleTest.isConfigured);
+
+        authenticationManagerFilter.destroy();
     }
 
     @Test
