@@ -116,15 +116,21 @@ public class FilterManager
 
         void addFilter(String path, Class<? extends AuthenticationFilter> filter)
         {
-            String canonicalName = filter.getCanonicalName();
+            final String canonicalName = filter.getCanonicalName();
+            final AuthenticationFilter instance;
+
             if (!instances.containsKey(canonicalName))
             {
-                AuthenticationFilter instance = newInstance(filter);
-                if (instance == null)
+                try
+                {
+                    instance = newInstance(filter);
+                    instances.put(canonicalName, instance);
+                } catch (InstantiationException | IllegalAccessException e)
+                {
+                    logger.error(String.format("Failed to instantiate '%s': %s", filter.getName(), e.getMessage()));
                     return;
-                instances.put(canonicalName, instance);
+                }
             }
-
             filters.put(path, canonicalName);
         }
 

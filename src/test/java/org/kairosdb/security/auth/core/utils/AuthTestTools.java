@@ -7,7 +7,7 @@ import java.io.InputStream;
 import java.util.Properties;
 import java.util.Set;
 
-public class AuthTools
+public class AuthTestTools
 {
     public static Properties getAuthProperties()
     {

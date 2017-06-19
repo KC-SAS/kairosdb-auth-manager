@@ -4,6 +4,7 @@ import com.google.inject.Scopes;
 import com.google.inject.multibindings.Multibinder;
 import com.google.inject.servlet.ServletModule;
 import org.kairosdb.security.auth.AuthenticationModule;
+import org.kairosdb.security.auth.core.exception.LoadingModuleException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +34,13 @@ public class AuthenticationManagerModule extends ServletModule
         bind(AuthenticationManagerFilter.class).in(Scopes.SINGLETON);
         bind(FilterManager.class).in(Scopes.SINGLETON);
 
-        modulesFrom(properties, AUTH_MODULES_PREFIX).forEach(this::bindModule);
+        try
+        {
+            modulesFrom(properties, AUTH_MODULES_PREFIX).forEach(this::bindModule);
+        } catch (LoadingModuleException | ClassNotFoundException e)
+        {
+            logger.error(String.format("Failed to load modules from properties: %s", e.getMessage()), e);
+        }
     }
 
     private void bindModule(Class<? extends AuthenticationModule> clazz)

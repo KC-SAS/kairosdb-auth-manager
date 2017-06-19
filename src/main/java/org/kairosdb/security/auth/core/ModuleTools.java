@@ -2,8 +2,7 @@ package org.kairosdb.security.auth.core;
 
 import org.kairosdb.security.auth.AuthenticationFilter;
 import org.kairosdb.security.auth.AuthenticationModule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.kairosdb.security.auth.core.exception.LoadingModuleException;
 
 import java.lang.reflect.Modifier;
 import java.util.HashSet;
@@ -13,37 +12,25 @@ import java.util.function.Consumer;
 
 public class ModuleTools
 {
-    private static final Logger logger = LoggerFactory.getLogger(AuthenticationManagerModule.class);
-
     public static <T> Class<? extends T> loadModule(String moduleName, Class<T> originClazz)
+            throws IllegalArgumentException, LoadingModuleException, ClassNotFoundException
     {
         if (moduleName == null || moduleName.isEmpty())
-            return null;
+            throw new IllegalArgumentException("Module name cannot be empty.");
 
-        try
-        {
-            Class<?> clazz = originClazz.getClassLoader().loadClass(moduleName);
-            if (originClazz.isAssignableFrom(clazz))
-                return (Class<? extends T>) clazz;
+        Class<?> clazz = originClazz.getClassLoader().loadClass(moduleName);
+        if (originClazz.isAssignableFrom(clazz))
+            return (Class<? extends T>) clazz;
 
-            String failureMessage = String.format("Invalid class, must extend '%s'", originClazz.getName());
-            logger.error(String.format("Unable to load module '%s': %s", moduleName, failureMessage));
-
-        } catch (ClassNotFoundException e)
-        {
-            logger.error(String.format("Unable to load module '%s': %s", moduleName, "Class not found"), e);
-
-        } catch (Exception e)
-        {
-            logger.error(String.format("Unable to load module '%s': %s", moduleName, e.getMessage()), e);
-        }
-        return null;
+        throw new LoadingModuleException(moduleName, String
+                .format("Invalid class, must extend '%s'", originClazz.getName()));
     }
 
     public static <T> T newInstance(Class<T> clazz)
+            throws IllegalArgumentException, InstantiationException, IllegalAccessException
     {
         if (clazz == null)
-            return null;
+            throw new IllegalArgumentException("Class parameter cannot be null.");
 
         try
         {
@@ -51,16 +38,19 @@ public class ModuleTools
         } catch (InstantiationException e)
         {
             if (clazz.isMemberClass() && !Modifier.isStatic(clazz.getModifiers()))
-                logger.error(String
-                        .format("'%s' is an inner class but must be static to be instantiated.", clazz.getName()), e);
-            else
-                logger.error(String.format("'%s' must implement a parameterless ctor.", clazz.getName()), e);
-        } catch (Exception ignore) {}
-
-        return null;
+            {
+                final String format = "'%s' is an inner class but must be static to be instantiated.";
+                throw new InstantiationException(String.format(format, clazz.getName()));
+            } else
+            {
+                final String format = "'%s' must implement a parameterless ctor.";
+                throw new InstantiationException(String.format(format, clazz.getName()));
+            }
+        }
     }
 
     public static Set<Class<? extends AuthenticationModule>> modulesFrom(Properties properties, String prefix)
+            throws IllegalArgumentException, LoadingModuleException, ClassNotFoundException
     {
         Set<Class<? extends AuthenticationModule>> moduleClazz = new HashSet<>();
 
@@ -68,10 +58,9 @@ public class ModuleTools
         {
             if (key.toString().startsWith(prefix))
             {
-                final Class<? extends AuthenticationModule> clazz = loadModule(properties
-                        .getProperty(key.toString()), AuthenticationModule.class);
-                if (clazz != null)
-                    moduleClazz.add(clazz);
+                final Class<? extends AuthenticationModule> clazz;
+                clazz = loadModule(properties.getProperty(key.toString()), AuthenticationModule.class);
+                moduleClazz.add(clazz);
             }
         }
 
@@ -95,8 +84,10 @@ public class ModuleTools
     {
         String[] items = path.split("\\|");
 
-        if (items.length == 0)
-            return (manager -> {});
+        if (items.length == 1 && items[0].isEmpty())
+            return (manager ->
+            {
+            });
 
         return (manager ->
         {

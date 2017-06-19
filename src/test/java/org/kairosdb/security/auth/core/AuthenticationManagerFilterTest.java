@@ -14,7 +14,7 @@ import java.io.UnsupportedEncodingException;
 import java.security.Principal;
 import java.util.*;
 
-import static org.kairosdb.security.auth.core.utils.AuthTools.getAuthProperties;
+import static org.kairosdb.security.auth.core.utils.AuthTestTools.getAuthProperties;
 
 public class AuthenticationManagerFilterTest
 {
@@ -70,11 +70,11 @@ public class AuthenticationManagerFilterTest
         authenticationManagerFilter.doFilter(new ServletRequestTest("POST", "/test/false"), null, filterChain);
         Assert.assertTrue(filterChain.isAuthenticated);
 
+
+
         filterChain.isAuthenticated = false;
         authenticationManagerFilter.doFilter(new ServletRequestTest("POST", "/test/none"), null, filterChain);
         Assert.assertFalse(filterChain.isAuthenticated);
-
-
 
         filterChain.isAuthenticated = false;
         authenticationManagerFilter.doFilter(new ServletRequestTest("OPTION", "/test/test"), null, filterChain);

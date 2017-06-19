@@ -5,10 +5,9 @@ import org.junit.Test;
 import org.kairosdb.security.auth.AuthenticationFilter;
 import org.kairosdb.test.security.auth.AuthenticationFilterTest;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.*;
 
 public class FilterManagerTest
 {
@@ -64,13 +63,22 @@ public class FilterManagerTest
         filters = filterManager.filtersFrom("post", "/test");
         Assert.assertEquals(1, filters.size());
 
-        filterManager.filter("/test/node/*").from("PATCH").from("POST").through(AuthenticationFilterTest.class);
+        filterManager.filter("/test/node/*").from("PATCH").from("POST").through(SpecialAuthFilter.class);
         filters = filterManager.filtersFrom("get", "/test/node/test");
         Assert.assertEquals(0, filters.size());
         filters = filterManager.filtersFrom("patch", "/test/node/test");
         Assert.assertEquals(1, filters.size());
         filters = filterManager.filtersFrom("post", "/test/node/test");
-        Assert.assertEquals(1, filters.size());
+        Assert.assertEquals(2, filters.size());
+    }
 
+    public static class SpecialAuthFilter implements AuthenticationFilter
+    {
+
+        @Override
+        public boolean tryAuthentication(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse)
+        {
+            return false;
+        }
     }
 }
