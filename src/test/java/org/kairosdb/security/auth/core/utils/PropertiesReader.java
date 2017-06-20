@@ -1,17 +1,13 @@
 package org.kairosdb.security.auth.core.utils;
 
-import org.kairosdb.security.auth.AuthenticationModule;
-
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Properties;
-import java.util.Set;
 
-public class AuthTestTools
+public class PropertiesReader
 {
-    public static Properties getAuthProperties()
+    public static java.util.Properties getProperties()
     {
-        Properties properties = new Properties();
+        java.util.Properties properties = new java.util.Properties();
         try
         {
             InputStream in = ClassLoader.getSystemResourceAsStream("auth.properties");
@@ -20,10 +16,5 @@ public class AuthTestTools
         } catch (IOException ignore) {}
 
         return properties;
-    }
-
-    public static Set<AuthenticationModule> getAuthModule()
-    {
-        return null;
     }
 }

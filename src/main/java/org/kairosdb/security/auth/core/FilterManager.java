@@ -1,21 +1,27 @@
 package org.kairosdb.security.auth.core;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
 import org.kairosdb.security.auth.AuthenticationFilter;
+import org.kairosdb.security.auth.core.container.FilterContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
-
-import static org.kairosdb.security.auth.core.ModuleTools.newInstance;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 
 public class FilterManager
 {
     private static final Logger logger = LoggerFactory.getLogger(FilterManager.class);
-    private MethodManager methodManager = new MethodManager();
+    private final FilterContainer filterContainer;
 
+    @Inject
+    FilterManager(Injector injector)
+    {
+        filterContainer = new FilterContainer(injector::getInstance);
+    }
 
     public FilterBuilder filter(String path)
     {
@@ -24,42 +30,21 @@ public class FilterManager
 
     void addFilter(String method, String path, Class<? extends AuthenticationFilter> filter)
     {
-        methodManager.addFilter(method.toUpperCase().trim(), path.trim(), filter);
+        try
+        {
+            filterContainer.addFilter(method, path, filter);
+        } catch (Exception e)
+        {
+            logger.error(String.format("'%s' must be able to be instanced by Guice", filter.getName()), e);
+        }
     }
 
     Set<AuthenticationFilter> filtersFrom(String method, String path)
     {
-        return methodManager.filtersFrom(method.trim().toUpperCase(), pathSplitter(path.trim()));
-    }
-
-    List<String> pathSplitter(String path)
-    {
-        final Set<String> paths = new HashSet<>();
-        final String[] parts = path.split("/");
-        final StringBuilder formattedPath = new StringBuilder("/");
-
-        if (parts.length < 2)
-            paths.add("/");
-        paths.add("/*");
-
-        for (int i = 1; i < parts.length; i++)
-        {
-            formattedPath.append(parts[i]);
-            if (i >= parts.length - 1 && !path.endsWith("/"))
-            {
-                paths.add(formattedPath.toString());
-                continue;
-            }
-
-            formattedPath.append("/");
-            paths.add(formattedPath.toString() + "*");
-        }
-
-        return new ArrayList<>(paths);
+        return filterContainer.filtersFrom(method, path);
     }
 
 
-    //region FilterBuilder
     public static class FilterBuilder
     {
         private final FilterManager manager;
@@ -85,70 +70,4 @@ public class FilterManager
             return this;
         }
     }
-    //endregion
-
-    //region MethodManager
-    static class MethodManager
-    {
-        Map<String, PathManager> methodFilters = new HashMap<>();
-
-        void addFilter(String method, String path, Class<? extends AuthenticationFilter> filter)
-        {
-            if (!methodFilters.containsKey(method))
-                methodFilters.put(method, new PathManager());
-            methodFilters.get(method).addFilter(path, filter);
-        }
-
-        Set<AuthenticationFilter> filtersFrom(String method, List<String> paths)
-        {
-            if (methodFilters.containsKey(method))
-                return methodFilters.get(method).filtersFrom(paths);
-            return new HashSet<>();
-        }
-    }
-    //endregion
-
-    //region PathManager
-    static class PathManager
-    {
-        Multimap<String, String> filters = ArrayListMultimap.create();
-        Map<String, AuthenticationFilter> instances = new HashMap<>();
-
-        void addFilter(String path, Class<? extends AuthenticationFilter> filter)
-        {
-            final String canonicalName = filter.getCanonicalName();
-            final AuthenticationFilter instance;
-
-            if (!instances.containsKey(canonicalName))
-            {
-                try
-                {
-                    instance = newInstance(filter);
-                    instances.put(canonicalName, instance);
-                } catch (InstantiationException | IllegalAccessException e)
-                {
-                    logger.error(String.format("Failed to instantiate '%s': %s", filter.getName(), e.getMessage()));
-                    return;
-                }
-            }
-            filters.put(path, canonicalName);
-        }
-
-        Set<AuthenticationFilter> filtersFrom(List<String> paths)
-        {
-            Set<AuthenticationFilter> contextFilter = new HashSet<>();
-
-            for (String path : paths)
-            {
-                if (!filters.containsKey(path))
-                    continue;
-
-                for (String instanceKey : filters.get(path))
-                    contextFilter.add(instances.get(instanceKey));
-            }
-
-            return contextFilter;
-        }
-    }
-    //endregion
 }

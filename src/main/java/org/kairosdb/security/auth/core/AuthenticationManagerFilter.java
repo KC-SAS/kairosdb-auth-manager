@@ -3,34 +3,33 @@ package org.kairosdb.security.auth.core;
 import com.google.inject.Inject;
 import org.kairosdb.security.auth.AuthenticationFilter;
 import org.kairosdb.security.auth.AuthenticationModule;
+import org.kairosdb.security.auth.core.exception.UnauthorizedClientResponse;
 
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 public class AuthenticationManagerFilter implements Filter
 {
-    private final Properties properties;
+    private final UnauthorizedClientResponse unauthorizedResponse;
     private final FilterManager filterManager;
-    private final Set<AuthenticationModule> modules;
 
     @Inject
     public AuthenticationManagerFilter(Properties properties, FilterManager filterManager, Set<AuthenticationModule> modules)
     {
-        this.properties = properties;
         this.filterManager = filterManager;
-        this.modules = modules;
+        unauthorizedResponse = new UnauthorizedClientResponse(Integer.MIN_VALUE, response -> response.sendError(401));
+
+        for (AuthenticationModule module : modules)
+            module.configure(properties, filterManager);
     }
 
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException
     {
-        for (AuthenticationModule module : modules)
-            module.configure(properties, filterManager);
     }
 
     @Override
@@ -40,19 +39,51 @@ public class AuthenticationManagerFilter implements Filter
         final HttpServletResponse httpServletResponse = (HttpServletResponse) servletResponse;
 
         final String method = httpServletRequest.getMethod();
-        final String contextPath = httpServletRequest.getContextPath();
-        final Set<AuthenticationFilter> filters = filterManager.filtersFrom(method, contextPath);
+        final String requestPath = httpServletRequest.getRequestURI();
+        final Set<AuthenticationFilter> filters = filterManager.filtersFrom(method, requestPath);
+        final Optional<Set<UnauthorizedClientResponse>> responses;
 
-        for (AuthenticationFilter filter : filters)
+        responses = tryAuthentication(filters, httpServletRequest);
+
+        if (responses.isPresent())
         {
-            if (filter.tryAuthentication(httpServletRequest, httpServletResponse))
-            {
-                filterChain.doFilter(servletRequest, servletResponse);
-                return;
-            }
+            responses.get().stream()
+                    .sorted(Comparator.comparingInt(UnauthorizedClientResponse::weight))
+                    .findFirst().orElse(unauthorizedResponse)
+                    .sendResponse(httpServletResponse);
+        }
+        else
+        {
+            filterChain.doFilter(servletRequest, servletResponse);
         }
     }
 
     @Override
-    public void destroy() { }
+    public void destroy()
+    {
+    }
+
+
+    private Optional<Set<UnauthorizedClientResponse>> tryAuthentication(Set<AuthenticationFilter> filters, HttpServletRequest httpRequest)
+    {
+        final Set<UnauthorizedClientResponse> responses = new HashSet<>();
+
+        for (AuthenticationFilter filter : filters)
+        {
+            try
+            {
+                if (filter.tryAuthentication(httpRequest))
+                    return Optional.empty();
+                responses.add(unauthorizedResponse);
+
+            } catch (UnauthorizedClientResponse response)
+            {
+                responses.add(response);
+            }
+        }
+
+        if (responses.isEmpty())
+            return Optional.empty();
+        return Optional.of(responses);
+    }
 }

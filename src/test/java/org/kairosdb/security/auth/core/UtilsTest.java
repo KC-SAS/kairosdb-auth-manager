@@ -1,28 +1,61 @@
 package org.kairosdb.security.auth.core;
 
+import com.google.inject.Injector;
 import org.junit.Assert;
 import org.junit.Test;
 import org.kairosdb.security.auth.AuthenticationFilter;
 import org.kairosdb.security.auth.AuthenticationModule;
 import org.kairosdb.security.auth.core.exception.LoadingModuleException;
-import org.kairosdb.test.security.auth.AuthenticationFilterTest;
-import org.kairosdb.test.security.auth.AuthenticationModuleTest;
+import org.kairosdb.security.auth.core.utils.SimpleInjector;
+import org.kairosdb.test.security.auth.AuthenticationFilterImpl;
+import org.kairosdb.test.security.auth.AuthenticationModuleImpl;
 
 import java.util.*;
 import java.util.function.Consumer;
 
-import static org.kairosdb.security.auth.core.ModuleTools.*;
-import static org.kairosdb.security.auth.core.utils.AuthTestTools.getAuthProperties;
+import static org.kairosdb.security.auth.core.Utils.*;
+import static org.kairosdb.security.auth.core.utils.PropertiesReader.getProperties;
 
-public class ModuleToolsTest
+public class UtilsTest
 {
-    private Properties properties = getAuthProperties();
+    private Properties properties = getProperties();
+
+    @Test
+    public void SplitterTest()
+    {
+        final Set<String> path_1 = new HashSet<>(Arrays.asList("/", "/*"));
+        final Set<String> path_2 = new HashSet<>(Arrays.asList("/*", "/test/*"));
+        final Set<String> path_3 = new HashSet<>(Arrays.asList("/*", "/test/*", "/test/ok"));
+        final Set<String> path_4 = new HashSet<>(Arrays.asList("/*", "/test/*", "/test/ok/*"));
+        final Set<String> path_5 = new HashSet<>(Arrays.asList("/*", "/test/*", "/test/ok/*", "/test/ok/end"));
+        final Set<String> path_6 = new HashSet<>(Arrays.asList("/*", "/test/*", "/test/ok/*", "/test/ok/end/*"));
+
+        List<String> paths;
+
+        paths = pathSplitter("/");
+        Assert.assertArrayEquals(path_1.toArray(), paths.toArray());
+
+        paths = pathSplitter("/test/");
+        Assert.assertArrayEquals(path_2.toArray(), paths.toArray());
+
+        paths = pathSplitter("/test/ok");
+        Assert.assertArrayEquals(path_3.toArray(), paths.toArray());
+
+        paths = pathSplitter("/test/ok/*");
+        Assert.assertArrayEquals(path_4.toArray(), paths.toArray());
+
+        paths = pathSplitter("/test/ok/end");
+        Assert.assertArrayEquals(path_5.toArray(), paths.toArray());
+
+        paths = pathSplitter("/test/ok/end/");
+        Assert.assertArrayEquals(path_6.toArray(), paths.toArray());
+    }
 
     @Test
     public void LoadModuleTest()
             throws ClassNotFoundException, LoadingModuleException
     {
-        Assert.assertNotNull(loadModule(AuthenticationFilterTest.class.getCanonicalName(), AuthenticationFilter.class));
+        Assert.assertNotNull(loadModule(AuthenticationFilterImpl.AllowFilter.class.getTypeName(), AuthenticationFilter.class));
     }
 
     @Test(expected = LoadingModuleException.class)
@@ -47,74 +80,26 @@ public class ModuleToolsTest
     }
 
     @Test
-    public void NewInstanceTest()
-            throws IllegalAccessException, InstantiationException
-    {
-        String s = newInstance(String.class);
-        Assert.assertEquals(String.class, s.getClass());
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void NewInstance_IllegalArgument()
-            throws IllegalAccessException, InstantiationException
-    {
-        newInstance(null);
-    }
-
-    @Test
-    public void NewInstance_InnerClass() throws IllegalAccessException
-    {
-        try
-        {
-            newInstance(InnerTestClass.class);
-            Assert.fail();
-        } catch (InstantiationException e)
-        {
-            final String format = "'%s' is an inner class but must be static to be instantiated.";
-            Assert.assertEquals(String.format(format, InnerTestClass.class.getName()), e.getMessage());
-        }
-    }
-
-    @Test
-    public void NewInstance_ParameterlessCtor() throws IllegalAccessException
-    {
-        try
-        {
-            newInstance(ParameterlessCtorTestClass.class);
-            Assert.fail();
-        } catch (InstantiationException e)
-        {
-            final String format = "'%s' must implement a parameterless ctor.";
-            Assert.assertEquals(String.format(format, ParameterlessCtorTestClass.class.getName()), e.getMessage());
-        }
-    }
-
-    @Test
     public void ModuleFromTest() throws ClassNotFoundException, LoadingModuleException
     {
         Set<Class<? extends AuthenticationModule>> modules = modulesFrom(properties, "kairosdb.security.auth.test.modules.");
         Assert.assertEquals(2, modules.size());
-        Assert.assertTrue(modules.contains(AuthenticationModuleTest.class));
-        Assert.assertTrue(modules.contains(ModuleTestClass.class));
-    }
-
-    @Test(expected = ClassNotFoundException.class)
-    public void ModuleFromTest_LoadingModuleException() throws ClassNotFoundException, LoadingModuleException
-    {
-        Set<Class<? extends AuthenticationModule>> modules = modulesFrom(properties, "kairosdb.security.auth.test.invalid.modules.");
+        Assert.assertTrue(modules.contains(AuthenticationModuleImpl.FromProperties.class));
+        Assert.assertTrue(modules.contains(AuthenticationModuleImpl.FromCode.class));
     }
 
     @Test
     public void FilterFromTest()
     {
-        Set<Consumer<FilterManager>> filters = filterFrom(properties, "kairosdb.security.auth.test.path.", AuthenticationFilterTest.class);
+        Set<Consumer<FilterManager>> filters = filterFrom(properties, "kairosdb.security.auth.test.allowed_path", AuthenticationFilterImpl.AllowFilter.class);
         Assert.assertEquals(3, filters.size());
     }
 
     @Test
     public void PathToFilter()
     {
-        final FilterManagerTest filterManager = new FilterManagerTest();
+        final SimpleInjector injector = new SimpleInjector();
+        final FilterManagerTest filterManager = new FilterManagerTest(injector);
 
         Consumer<FilterManager> filter = pathToFilter("/api/*", AuthenticationFilter.class);
         filter.accept(filterManager);
@@ -143,27 +128,17 @@ public class ModuleToolsTest
     }
 
     //region Tests classes
-    private class InnerTestClass {}
-
-    private static class ParameterlessCtorTestClass
-    {
-        ParameterlessCtorTestClass(String s) {}
-    }
-
-    private static class ModuleTestClass implements AuthenticationModule
-    {
-        @Override
-        public void configure(Properties properties, FilterManager manager)
-        {
-
-        }
-    }
 
     private static class FilterManagerTest extends FilterManager
     {
         Set<String> methods = new HashSet<>();
         Set<String> paths = new HashSet<>();
         Set<Class<? extends AuthenticationFilter>> filters = new HashSet<>();
+
+        FilterManagerTest(Injector injector)
+        {
+            super(injector);
+        }
 
         @Override
         void addFilter(String method, String path, Class<? extends AuthenticationFilter> filter)
