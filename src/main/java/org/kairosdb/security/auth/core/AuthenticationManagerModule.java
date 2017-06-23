@@ -38,7 +38,6 @@ public class AuthenticationManagerModule extends ServletModule
             logger.error(String.format("Failed to load modules from properties: %s", e.getMessage()), e);
         }
 
-        filter("/").through(AuthenticationManagerFilter.class);
         filter("/*").through(AuthenticationManagerFilter.class);
     }
 }

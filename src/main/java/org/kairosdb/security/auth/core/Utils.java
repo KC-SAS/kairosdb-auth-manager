@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 public class Utils
 {
     //region Filter tools
-    public static Set<Consumer<FilterManager>> filterFrom(Properties properties, String prefix, Class<? extends AuthenticationFilter> filter)
+    public static Set<Consumer<FilterManager>> filtersFrom(Properties properties, String prefix, Class<? extends AuthenticationFilter> filter)
     {
         Set<Consumer<FilterManager>> filters = new HashSet<>();
 

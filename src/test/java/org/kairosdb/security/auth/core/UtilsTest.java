@@ -91,7 +91,7 @@ public class UtilsTest
     @Test
     public void FilterFromTest()
     {
-        Set<Consumer<FilterManager>> filters = filterFrom(properties, "kairosdb.security.auth.test.allowed_path", AuthenticationFilterImpl.AllowFilter.class);
+        Set<Consumer<FilterManager>> filters = filtersFrom(properties, "kairosdb.security.auth.test.allowed_path", AuthenticationFilterImpl.AllowFilter.class);
         Assert.assertEquals(3, filters.size());
     }
 

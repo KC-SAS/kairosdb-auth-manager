@@ -4,6 +4,8 @@ import com.google.inject.Inject;
 import org.kairosdb.security.auth.AuthenticationFilter;
 import org.kairosdb.security.auth.AuthenticationModule;
 import org.kairosdb.security.auth.core.exception.UnauthorizedClientResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
@@ -13,6 +15,7 @@ import java.util.*;
 
 public class AuthenticationManagerFilter implements Filter
 {
+    private static final Logger logger = LoggerFactory.getLogger(AuthenticationManagerFilter.class);
     private final UnauthorizedClientResponse unauthorizedResponse;
     private final FilterManager filterManager;
 
@@ -43,12 +46,15 @@ public class AuthenticationManagerFilter implements Filter
         final Set<AuthenticationFilter> filters = filterManager.filtersFrom(method, requestPath);
         final Optional<Set<UnauthorizedClientResponse>> responses;
 
+        logger.debug(String.format("Authentication filter '%s' (%s)", requestPath, method));
+        logger.debug(String.format("%d filter(s) found", filters.size()));
+
         responses = tryAuthentication(filters, httpServletRequest);
 
         if (responses.isPresent())
         {
             responses.get().stream()
-                    .sorted(Comparator.comparingInt(UnauthorizedClientResponse::weight))
+                    .sorted((lhs, rhs) -> rhs.weight() - lhs.weight())
                     .findFirst().orElse(unauthorizedResponse)
                     .sendResponse(httpServletResponse);
         }

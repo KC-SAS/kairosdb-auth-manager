@@ -6,7 +6,7 @@ import org.kairosdb.security.auth.core.FilterManager;
 import java.util.Properties;
 
 import static org.kairosdb.security.auth.core.AuthenticationManagerModule.KAIROSDB_SECURITY_PREFIX;
-import static org.kairosdb.security.auth.core.Utils.filterFrom;
+import static org.kairosdb.security.auth.core.Utils.filtersFrom;
 
 public class AuthenticationModuleImpl
 {
@@ -21,9 +21,9 @@ public class AuthenticationModuleImpl
             if (properties == null)
                 return;
 
-            filterFrom(properties, KAIROSDB_SECURITY_PREFIX + "auth.test.allowed_path.", AuthenticationFilterImpl.AllowFilter.class)
+            filtersFrom(properties, KAIROSDB_SECURITY_PREFIX + "auth.test.allowed_path.", AuthenticationFilterImpl.AllowFilter.class)
                     .forEach(f -> f.accept(manager));
-            filterFrom(properties, KAIROSDB_SECURITY_PREFIX + "auth.test.denied_path.", AuthenticationFilterImpl.DenyFilter.class)
+            filtersFrom(properties, KAIROSDB_SECURITY_PREFIX + "auth.test.denied_path.", AuthenticationFilterImpl.DenyFilter.class)
                     .forEach(f -> f.accept(manager));
         }
     }
