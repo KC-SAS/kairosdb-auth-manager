@@ -9,7 +9,17 @@ import java.util.function.Consumer;
 
 public class Utils
 {
-    //region Filter tools
+    /**
+     * Tool to generate a collection of {@link Consumer}
+     * from path list in {@link Properties}. <br>
+     * Theses {@link Consumer} must be used with the {@link FilterManager}
+     * to configure filters.
+     *
+     * @param properties {@link Properties} containing information of filter path
+     * @param prefix Prefix of the filter path in the {@link Properties}
+     * @param filter {@link AuthenticationFilter} filter applied on the filter paths
+     * @return collection with {@link Consumer} to be used with {@link FilterManager}
+     */
     public static Set<Consumer<FilterManager>> filtersFrom(Properties properties, String prefix, Class<? extends AuthenticationFilter> filter)
     {
         Set<Consumer<FilterManager>> filters = new HashSet<>();
@@ -21,6 +31,14 @@ public class Utils
         return filters;
     }
 
+    /**
+     * Tool to generate a {@link Consumer} from a path. This {@link Consumer}
+     * can be used with the {@link FilterManager} to configure filters.
+     *
+     * @param path path representing the path and the HTTP method applied on it (like PATH|METHOD|METHOD)
+     * @param filter {@link AuthenticationFilter} filter applied on the filter path
+     * @return {@link Consumer} to be used with {@link FilterManager}
+     */
     public static Consumer<FilterManager> pathToFilter(String path, Class<? extends AuthenticationFilter> filter)
     {
         String[] items = path.split("\\|");
@@ -43,23 +61,15 @@ public class Utils
             builder.through(filter);
         };
     }
-    //endregion
 
-    //region Modules tools
-    public static <T> Class<? extends T> loadModule(String moduleName, Class<T> originClazz)
-            throws IllegalArgumentException, LoadingModuleException, ClassNotFoundException
-    {
-        if (moduleName == null || moduleName.isEmpty())
-            throw new IllegalArgumentException("Module name cannot be empty.");
-
-        Class<?> clazz = originClazz.getClassLoader().loadClass(moduleName);
-        if (originClazz.isAssignableFrom(clazz))
-            return (Class<? extends T>) clazz;
-
-        throw new LoadingModuleException(moduleName, String
-                .format("Invalid class, must extend '%s'", originClazz.getName()));
-    }
-
+    /**
+     * Tool to generate a collection of {@link Class} from {@link Properties}.
+     * Used to load {@link Class} modules from property file
+     *
+     * @param properties {@link Properties} containing class names
+     * @param prefix Prefix of the class names in the {@link Properties}
+     * @return collection of {@link Class}
+     */
     public static Set<Class<? extends AuthenticationModule>> modulesFrom(Properties properties, String prefix)
             throws IllegalArgumentException, LoadingModuleException, ClassNotFoundException
     {
@@ -70,16 +80,42 @@ public class Utils
             if (key.toString().startsWith(prefix))
             {
                 final Class<? extends AuthenticationModule> clazz;
-                clazz = loadModule(properties.getProperty(key.toString()), AuthenticationModule.class);
+                clazz = loadClass(properties.getProperty(key.toString()), AuthenticationModule.class);
                 moduleClazz.add(clazz);
             }
         }
 
         return moduleClazz;
     }
-    //endregion
 
-    //region Path tools
+
+    /**
+     * Generic tool to generate a {@link Class} from the class name.
+     *
+     * @param className Name of the class
+     * @param originClazz {@link Class} of a parent of the class. Can be used to filter class
+     * @return {@link Class} loaded thanks to its name
+     */
+    public static <T> Class<? extends T> loadClass(String className, Class<T> originClazz)
+            throws IllegalArgumentException, LoadingModuleException, ClassNotFoundException
+    {
+        if (className == null || className.isEmpty())
+            throw new IllegalArgumentException("Module name cannot be empty.");
+
+        Class<?> clazz = originClazz.getClassLoader().loadClass(className);
+        if (originClazz.isAssignableFrom(clazz))
+            return (Class<? extends T>) clazz;
+
+        throw new LoadingModuleException(className, String
+                .format("Invalid class, must extend '%s'", originClazz.getName()));
+    }
+
+    /**
+     * Tool used to split path in sub path.
+     *
+     * @param path Path to be splitted
+     * @return {@link List} of all sub path
+     */
     public static List<String> pathSplitter(String path)
     {
         final Set<String> paths = new HashSet<>();
@@ -105,5 +141,4 @@ public class Utils
 
         return new ArrayList<>(paths);
     }
-    //endregion
 }

@@ -55,28 +55,28 @@ public class UtilsTest
     public void LoadModuleTest()
             throws ClassNotFoundException, LoadingModuleException
     {
-        Assert.assertNotNull(loadModule(AuthenticationFilterImpl.AllowFilter.class.getTypeName(), AuthenticationFilter.class));
+        Assert.assertNotNull(loadClass(AuthenticationFilterImpl.AllowFilter.class.getTypeName(), AuthenticationFilter.class));
     }
 
     @Test(expected = LoadingModuleException.class)
     public void LoadModule_InvalidClass()
             throws ClassNotFoundException, LoadingModuleException
     {
-        loadModule(String.class.getCanonicalName(), AuthenticationFilter.class);
+        loadClass(String.class.getCanonicalName(), AuthenticationFilter.class);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void LoadModule_InvalidName()
             throws ClassNotFoundException, LoadingModuleException
     {
-        loadModule("", AuthenticationFilter.class);
+        loadClass("", AuthenticationFilter.class);
     }
 
     @Test(expected = ClassNotFoundException.class)
     public void LoadModule_ClassNotFound()
             throws ClassNotFoundException, LoadingModuleException
     {
-        loadModule("UnknownClass.none", AuthenticationFilter.class);
+        loadClass("UnknownClass.none", AuthenticationFilter.class);
     }
 
     @Test

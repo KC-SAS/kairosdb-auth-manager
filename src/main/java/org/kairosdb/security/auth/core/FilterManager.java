@@ -11,7 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-
+/**
+ * Class to easily manage several filters
+ */
 public class FilterManager
 {
     private static final Logger logger = LoggerFactory.getLogger(FilterManager.class);
@@ -23,11 +25,18 @@ public class FilterManager
         filterContainer = new FilterContainer(injector::getInstance);
     }
 
+    /**
+     * Create a new filter rule.
+     *
+     * @param path Web path where the filter is applied
+     * @return {@link FilterBuilder} used to build the filter rule
+     */
     public FilterBuilder filter(String path)
     {
         return new FilterBuilder(path, this);
     }
 
+    //region Internal methods
     void addFilter(String method, String path, Class<? extends AuthenticationFilter> filter)
     {
         try
@@ -43,7 +52,7 @@ public class FilterManager
     {
         return filterContainer.filtersFrom(method, path);
     }
-
+    //endregion
 
     public static class FilterBuilder
     {
@@ -57,12 +66,24 @@ public class FilterManager
             this.path = path;
         }
 
+        /**
+         * Add a method to the filter rule.
+         *
+         * @param method HTTP method required to use the filter
+         * @return {@link FilterBuilder} used to build the filter rule
+         */
         public FilterBuilder from(String method)
         {
             methods.add(method);
             return this;
         }
 
+        /**
+         * Add an {@link AuthenticationFilter}, applied by the filter rule.
+         *
+         * @param filter {@link AuthenticationFilter} used to authentication the client
+         * @return {@link FilterBuilder} used to build the filter rule
+         */
         public FilterBuilder through(Class<? extends AuthenticationFilter> filter)
         {
             for (String method : methods)
