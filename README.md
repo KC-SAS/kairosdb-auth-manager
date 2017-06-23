@@ -1,9 +1,10 @@
-#KairosDB - Authentication manager
-
+KairosDB - Authentication manager
+=================================
 This KairosDB module can help you to create authentication for the WebUI and the API.
 
 
-##Usage
+Usage
+-----
 To create an authentication, you need to implement two interface.
 
 * **AuthenticationFilter**, used to authenticate clients
@@ -65,5 +66,6 @@ class SimpleAuthModule implements AuthenticationModule
 > ``/api/*/entry`` or ``/api*`` paths are not valid (and not checked)
 
 
-##License
-This module is licensed under the MIT license. See [License file](LICENSE.md) for more information.
+License
+-------
+This module is licensed under the MIT license. See [License file](LICENSE for more information.
