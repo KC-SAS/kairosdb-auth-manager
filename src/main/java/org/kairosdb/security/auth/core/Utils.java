@@ -9,6 +9,8 @@ import java.util.function.Consumer;
 
 public class Utils
 {
+    private static final Consumer<FilterManager> EMPTY_FILTER = f -> {};
+
     /**
      * Tool to generate a collection of {@link Consumer}
      * from path list in {@link Properties}. <br>
@@ -16,37 +18,39 @@ public class Utils
      * to configure filters.
      *
      * @param properties {@link Properties} containing information of filter path
-     * @param prefix Prefix of the filter path in the {@link Properties}
-     * @param filter {@link AuthenticationFilter} filter applied on the filter paths
-     * @return collection with {@link Consumer} to be used with {@link FilterManager}
+     * @param prefix     Prefix of the filter paths in the {@link Properties}
+     * @param filters     {@link AuthenticationFilter} filters applied on the filter paths
+     * @return collection of {@link Consumer} to be used with {@link FilterManager}
      */
-    public static Set<Consumer<FilterManager>> filtersFrom(Properties properties, String prefix, Class<? extends AuthenticationFilter> filter)
+    @SafeVarargs
+    public static Set<Consumer<FilterManager>> filtersFrom(Properties properties, String prefix, Class<? extends AuthenticationFilter> ...filters)
     {
-        Set<Consumer<FilterManager>> filters = new HashSet<>();
+        Set<Consumer<FilterManager>> consumers = new HashSet<>();
 
         for (Object key : properties.keySet())
             if (key.toString().startsWith(prefix))
-                filters.add(pathToFilter(properties.getProperty(key.toString()), filter));
+                consumers.add(pathToFilter(properties.getProperty(key.toString()), filters));
 
-        return filters;
+        return consumers;
     }
 
     /**
      * Tool to generate a {@link Consumer} from a path. This {@link Consumer}
      * can be used with the {@link FilterManager} to configure filters.
      *
-     * @param path path representing the path and the HTTP method applied on it (like PATH|METHOD|METHOD)
-     * @param filter {@link AuthenticationFilter} filter applied on the filter path
+     * @param path    Path representing the path and the HTTP method applied on it (like PATH|METHOD|METHOD)
+     * @param filters List of {@link AuthenticationFilter} applied on the filter path
      * @return {@link Consumer} to be used with {@link FilterManager}
      */
-    public static Consumer<FilterManager> pathToFilter(String path, Class<? extends AuthenticationFilter> filter)
+    @SafeVarargs
+    public static Consumer<FilterManager> pathToFilter(String path, Class<? extends AuthenticationFilter>... filters)
     {
-        String[] items = path.split("\\|");
+        if (filters == null || filters.length == 0)
+            return EMPTY_FILTER;
 
+        String[] items = path.split("\\|");
         if (items.length == 1 && items[0].isEmpty())
-            return m ->
-            {
-            };
+            return EMPTY_FILTER;
 
         return manager ->
         {
@@ -58,7 +62,8 @@ public class Utils
                 if (!items[i].isEmpty())
                     builder.from(items[i].trim().toUpperCase());
 
-            builder.through(filter);
+            for (Class<? extends AuthenticationFilter> filter : filters)
+                builder.through(filter);
         };
     }
 
@@ -67,7 +72,7 @@ public class Utils
      * Used to load {@link Class} modules from property file
      *
      * @param properties {@link Properties} containing class names
-     * @param prefix Prefix of the class names in the {@link Properties}
+     * @param prefix     Prefix of the class names in the {@link Properties}
      * @return collection of {@link Class}
      */
     public static Set<Class<? extends AuthenticationModule>> modulesFrom(Properties properties, String prefix)
@@ -92,7 +97,7 @@ public class Utils
     /**
      * Generic tool to generate a {@link Class} from the class name.
      *
-     * @param className Name of the class
+     * @param className   Name of the class
      * @param originClazz {@link Class} of a parent of the class. Can be used to filter class
      * @return {@link Class} loaded thanks to its name
      */
