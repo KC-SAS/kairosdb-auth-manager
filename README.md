@@ -68,4 +68,4 @@ class SimpleAuthModule implements AuthenticationModule
 
 License
 -------
-This module is licensed under the MIT license. See [License file](LICENSE for more information.
+This module is licensed under the MIT license. See [License file](LICENSE) for more information.
