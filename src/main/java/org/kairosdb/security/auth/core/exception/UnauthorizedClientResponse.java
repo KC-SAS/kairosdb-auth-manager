@@ -19,6 +19,21 @@ public class UnauthorizedClientResponse extends Exception
      */
     public UnauthorizedClientResponse(int weight, HttpResponse response)
     {
+        super();
+        this.weight = weight;
+        this.response = response;
+    }
+
+    /**
+     * Create new exception containing a weight and a lambda.<br>
+     * The weight is used to define priority (more is better).
+     *
+     * @param weight Weight of the response (priority)
+     * @param response Lambda constructing the response
+     */
+    public UnauthorizedClientResponse(int weight, HttpResponse response, Throwable cause)
+    {
+        super(cause);
         this.weight = weight;
         this.response = response;
     }
