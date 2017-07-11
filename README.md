@@ -65,6 +65,20 @@ class SimpleAuthModule implements AuthenticationModule
 > CAUTION: the wildcard path ``*`` in filter rule must only be used at the end of path and just after ``/``.  
 > ``/api/*/entry`` or ``/api*`` paths are not valid (and not checked)
 
+Configuration
+-------------
+This module must be configured using properties files, loaded by KairosDB.
+
+* `kairosdb.service.auth=org.kairosdb.security.auth.core.AuthenticationManagerModule` : Enable authentication KairosDB service
+* `kairosdb.security.auth.modules.X=Y` : Load the module X from the classpath Y
+> _For example, `kairosdb.security.auth.modules.oauth=org.kairosdb.security.oauth2.core.OAuthModule`_
+
+### Path configuration (for `Utils.pathToFilter`)
+_Syntax_ : `path_from_root|METHOD|METHOD`
+> Example :
+> * Filter `/api/test` only for GET method : `/api/test` _(GET is set by default)_
+> * Filter all elements from `/api/` for POST and PUT method : `/api/*|Post|put` _(Method name ignore case)_
+
 
 License
 -------
