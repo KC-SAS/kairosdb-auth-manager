@@ -73,7 +73,7 @@ This module must be configured using properties files, loaded by KairosDB.
 * `kairosdb.security.auth.modules.X=Y` : Load the module X from the classpath Y
 > _For example, `kairosdb.security.auth.modules.oauth=org.kairosdb.security.oauth2.core.OAuthModule`_
 
-### Path configuration (for `Utils.pathToFilter`)
+### Path configuration _(for `Utils.pathToFilter`)_
 _Syntax_ : `path_from_root|METHOD|METHOD`
 > Example :
 > * Filter `/api/test` only for GET method : `/api/test` _(GET is set by default)_
